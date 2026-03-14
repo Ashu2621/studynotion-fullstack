@@ -17,7 +17,7 @@ dotenv.config();
 
 const PORT = process.env.PORT || 4000;
 
-// database connect
+// database
 database.connectDB();
 
 // middlewares
@@ -26,7 +26,7 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: "*",
+    origin: ["https://studynotion-fullstack-26c4.vercel.app"],
     credentials: true,
   })
 );
@@ -38,7 +38,7 @@ app.use(
   })
 );
 
-// cloudinary connection
+// cloudinary
 cloudinaryConnect();
 
 // routes
@@ -47,7 +47,7 @@ app.use("/api/v1/profile", profileRoutes);
 app.use("/api/v1/course", courseRoutes);
 app.use("/api/v1/payment", paymentRoutes);
 
-// default route
+// test route
 app.get("/", (req, res) => {
   return res.json({
     success: true,
@@ -55,6 +55,7 @@ app.get("/", (req, res) => {
   });
 });
 
+// listen
 app.listen(PORT, () => {
   console.log(`App is running at ${PORT}`);
 });
