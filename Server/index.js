@@ -17,19 +17,30 @@ dotenv.config();
 
 const PORT = process.env.PORT || 4000;
 
-// database
+/* ================= DATABASE ================= */
+
 database.connectDB();
 
-// middlewares
+/* ================= MIDDLEWARES ================= */
+
 app.use(express.json());
 app.use(cookieParser());
 
+/* ===== CORS FIX FOR VERCEL FRONTEND ===== */
+
 app.use(
   cors({
-    origin: ["https://studynotion-fullstack-26c4.vercel.app"],
+    origin: "https://studynotion-fullstack-26c4.vercel.app",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   })
 );
+
+/* handle preflight requests */
+
+app.options("*", cors());
+
+/* ===== FILE UPLOAD ===== */
 
 app.use(
   fileUpload({
@@ -38,16 +49,19 @@ app.use(
   })
 );
 
-// cloudinary
+/* ================= CLOUDINARY ================= */
+
 cloudinaryConnect();
 
-// routes
+/* ================= ROUTES ================= */
+
 app.use("/api/v1/auth", userRoutes);
 app.use("/api/v1/profile", profileRoutes);
 app.use("/api/v1/course", courseRoutes);
 app.use("/api/v1/payment", paymentRoutes);
 
-// test route
+/* ================= TEST ROUTE ================= */
+
 app.get("/", (req, res) => {
   return res.json({
     success: true,
@@ -55,7 +69,8 @@ app.get("/", (req, res) => {
   });
 });
 
-// listen
+/* ================= SERVER START ================= */
+
 app.listen(PORT, () => {
   console.log(`App is running at ${PORT}`);
 });
