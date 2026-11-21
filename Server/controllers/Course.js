@@ -7,12 +7,13 @@ const {uploadImageToCloudinary} = require('../utils/imageUploader')
 require('dotenv').config();
 const CourseProgress = require("../models/CourseProgress")
 const { convertSecondsToDuration } = require("../utils/secToDuration")
+const { notYours } = require("../utils/ownership")
 
 exports.createCourse = async (req,res) => {
     try {
         const{courseName, courseDescription, whatWillYouLearn, price, category,tags,status, instructions} = req.body;
 
-        const thumbnail = req.files.thumbnailImage;
+        const thumbnail = req.files && req.files.thumbnailImage;
         console.log("Thumbnail in course creation is", thumbnail)
         if(!courseName || !courseDescription || !whatWillYouLearn || !price || !category || !thumbnail || !status || !instructions) {
             return res.status(400).json({
@@ -75,14 +76,14 @@ exports.createCourse = async (req,res) => {
 
 exports.showAllCourses = async (req,res) => {
     try {
-        const allCourses = Course.find({}, {
+        const allCourses = await Course.find({}, {
             courseName: true,
             price: true,
             thumbnail: true,
             instructor: true,
             ratingAndReviews: true,
-            studentsEnroled: true,
-        }).populate("instructor").exec();
+            studentsEnrolled: true,
+        }).populate({ path: "instructor", select: "firstName lastName image" }).exec();
 
         return res.status(200).json({
             success:true,
@@ -108,6 +109,7 @@ exports.getCourseDetails = async (req, res) => {
                                 .populate(
                                     {
                                         path:"instructor",
+                                        select: "firstName lastName image additionalDetails",
                                         populate:{
                                             path:"additionalDetails",
                                         },
@@ -169,9 +171,12 @@ exports.editCourse = async (req, res) => {
       if (!course) {
         return res.status(404).json({ error: "Course not found" })
       }
+      if (String(course.instructor) !== String(req.user.id)) {
+        return notYours(res)
+      }
   
       // If Thumbnail Image is found, update it
-      if (req.files) {
+      if (req.files && req.files.thumbnailImage) {
         console.log("thumbnail update")
         const thumbnail = req.files.thumbnailImage
         const thumbnailImage = await uploadImageToCloudinary(
@@ -181,15 +186,21 @@ exports.editCourse = async (req, res) => {
         course.thumbnail = thumbnailImage.secure_url
       }
   
-      // Update only the fields that are present in the request body
-      for (const key in updates) {
-        if (updates.hasOwnProperty(key)) {
-          course[key] = updates[key]
-          // if (key === "tag" || key === "instructions") {
-          //   course[key] = JSON.parse(updates[key])
-          // } else {
-          //   course[key] = updates[key]
-          // }
+      // Only these fields can be edited
+      const editable = {
+        courseName: "courseName",
+        courseDescription: "description",
+        description: "description",
+        whatWillYouLearn: "whatWillYouLearn",
+        price: "price",
+        tags: "tags",
+        category: "category",
+        status: "status",
+        instructions: "instructions",
+      }
+      for (const key of Object.keys(editable)) {
+        if (updates[key] !== undefined) {
+          course[editable[key]] = updates[key]
         }
       }
   
@@ -200,6 +211,7 @@ exports.editCourse = async (req, res) => {
       })
         .populate({
           path: "instructor",
+          select: "firstName lastName image additionalDetails",
           populate: {
             path: "additionalDetails", 
           },
@@ -238,6 +250,7 @@ exports.editCourse = async (req, res) => {
       })
         .populate({
           path: "instructor",
+          select: "firstName lastName image additionalDetails",
           populate: {
             path: "additionalDetails",
           },
@@ -342,6 +355,9 @@ exports.editCourse = async (req, res) => {
       if (!course) {
         return res.status(404).json({ message: "Course not found" })
       }
+      if (String(course.instructor) !== String(req.user.id)) {
+        return notYours(res)
+      }
   
       // Unenroll students from the course
       const studentsEnrolled = course.studentsEnrolled
@@ -369,6 +385,9 @@ exports.editCourse = async (req, res) => {
       
 
       // Delete the course
+      await User.findByIdAndUpdate(course.instructor, { $pull: { courses: courseId } })
+      await Category.findByIdAndUpdate(course.category, { $pull: { course: courseId } })
+      await CourseProgress.deleteMany({ courseID: courseId })
       await Course.findByIdAndDelete(courseId)
   
       return res.status(200).json({

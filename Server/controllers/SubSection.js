@@ -1,18 +1,25 @@
 const SubSection = require('../models/SubSection');
 const Section = require("../models/Section");
 const { uploadImageToCloudinary } = require("../utils/imageUploader");
+const { instructorOwnsSection, notYours } = require("../utils/ownership");
 
 exports.createSubSection = async (req,res) =>{
     try {
         const {sectionId,title, timeDuration, description } = req.body;
 
-        const video  = req.files.video;
+        const video  = req.files && req.files.video;
 
         if(!sectionId || !title || !description || !video) {
             return res.status(400).json({
                 success:false,
                 message:'All fields are required',
             });
+        }
+
+        if (!(await instructorOwnsSection(sectionId, req.user.id))) {
+
+            return notYours(res);
+
         }
 
         const uploadDetails = await uploadImageToCloudinary(video, process.env.FOLDER_NAME);
@@ -44,6 +51,9 @@ exports.createSubSection = async (req,res) =>{
 exports.updateSubSection = async (req, res) => {
     try {
       const { sectionId,subSectionId, title, description } = req.body
+      if (!(await instructorOwnsSection(sectionId, req.user.id))) {
+        return notYours(res)
+      }
       const subSection = await SubSection.findById(subSectionId)
   
       if (!subSection) {
@@ -93,6 +103,15 @@ exports.deleteSubSection = async (req,res) =>{
     try {
         
         const {subSectionId,sectionId } = req.body;
+        if(!subSectionId) {
+            return res.status(400).json({
+                success:false,
+                message:'SubSection Id to be deleted is required',
+            });
+        }
+        if (!(await instructorOwnsSection(sectionId, req.user.id))) {
+            return notYours(res);
+        }
         await Section.findByIdAndUpdate(
             { _id: sectionId },
             {
@@ -101,13 +120,6 @@ exports.deleteSubSection = async (req,res) =>{
               },
             }
           )
-
-        if(!subSectionId) {
-            return res.status(400).json({
-                success:false,
-                message:'SubSection Id to be deleted is required',
-            });
-        }
 
         
         const subSection = await SubSection.findByIdAndDelete({ _id: subSectionId })

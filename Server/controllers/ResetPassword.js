@@ -33,7 +33,8 @@ exports.resetPasswordToken = async (req,res) => {
                                                     },
                                                     {new:true}) 
 
-       const url = `http://localhost:3000/update-password/${token}`
+       const frontend = (process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/+$/, "")
+       const url = `${frontend}/update-password/${token}`
 
        await mailSender(email, "Password Reset Link", `Password reset link: ${url}`);
 
@@ -85,10 +86,11 @@ exports.resetPassword = async (req,res) => {
         }
 
         const hashedPwd = await bcrypt.hash(password, 10);
-        const updatedUser = await User.findOneAndUpdate({token},{
-            password:hashedPwd
+        await User.findOneAndUpdate({token},{
+            password:hashedPwd,
+            token:null,
+            resetPasswordExpires:null
         },{new:true})
-        console.log("Updated user after password change is", updatedUser)
         return res.status(200).json({
             success:true,
             message:"Password Changed successfully"

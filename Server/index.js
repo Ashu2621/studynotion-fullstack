@@ -12,6 +12,7 @@ const cors = require("cors");
 const { cloudinaryConnect } = require("./config/cloudinary");
 const fileUpload = require("express-fileupload");
 const dotenv = require("dotenv");
+const os = require("os");
 
 dotenv.config();
 
@@ -28,24 +29,27 @@ app.use(cookieParser());
 
 /* ===== CORS FIX FOR VERCEL FRONTEND ===== */
 
-app.use(
-  cors({
-    origin: "https://studynotion-fullstack-26c4.vercel.app",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    credentials: true,
-  })
-);
+const corsOptions = {
+  origin: (process.env.CORS_ORIGINS || "https://studynotion-fullstack-26c4.vercel.app,http://localhost:3000")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 
 /* handle preflight requests */
 
-app.options("*", cors());
+app.options("*", cors(corsOptions));
 
 /* ===== FILE UPLOAD ===== */
 
 app.use(
   fileUpload({
     useTempFiles: true,
-    tempFileDir: "/tmp",
+    tempFileDir: os.tmpdir(),
   })
 );
 

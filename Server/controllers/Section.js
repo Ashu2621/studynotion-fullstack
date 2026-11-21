@@ -1,6 +1,7 @@
 const Section = require('../models/Section');
 const Course = require('../models/Course');
 const SubSection = require('../models/SubSection');
+const { instructorOwnsCourse, instructorOwnsSection, notYours } = require('../utils/ownership');
 exports.createSection = async (req,res) => {
     try {
         
@@ -11,6 +12,12 @@ exports.createSection = async (req,res) => {
                 success:false,
                 message:'All fields are required',
             });
+        }
+
+        if (!(await instructorOwnsCourse(courseId, req.user.id))) {
+
+            return notYours(res);
+
         }
 
         const newSection = await Section.create({sectionName});
@@ -54,6 +61,12 @@ exports.updateSection = async (req,res) => {
             });
         }
 
+        if (!(await instructorOwnsSection(sectionId, req.user.id))) {
+
+            return notYours(res);
+
+        }
+
         const updatedSection = await Section.findByIdAndUpdate(sectionId, {sectionName}, {new:true});
         const updatedCourse = await Course.findById(courseId)
           .populate({
@@ -88,12 +101,22 @@ exports.deleteSection = async (req,res) => {
             });
         }
 
+        if (!(await instructorOwnsSection(sectionId, req.user.id))) {
+            return notYours(res);
+        }
+
         const sectionDetails = await Section.findById(sectionId);
-        
-        // //Section ke ander ke subsections delete kiye hai 
-        sectionDetails.subSection.forEach( async (ssid)=>{
-            await SubSection.findByIdAndDelete(ssid);
-        })
+        if (!sectionDetails) {
+            return res.status(404).json({
+                success:false,
+                message:'Section not found',
+            });
+        }
+
+        await SubSection.deleteMany({ _id: { $in: sectionDetails.subSection } });
+        if (courseId) {
+            await Course.findByIdAndUpdate(courseId, { $pull: { courseContent: sectionId } });
+        }
         console.log('Subsections within the section deleted')
         //NOTE: Due to cascading deletion, Mongoose automatically triggers the built-in middleware to perform a cascading delete for all the referenced 
         //SubSection documents. DOUBTFUL!

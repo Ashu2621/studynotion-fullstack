@@ -5,6 +5,7 @@ const mailSender = async (email, title, body) =>{
     try {
         let transporter = nodemailer.createTransport({
             host: process.env.MAIL_HOST,
+            port: Number(process.env.MAIL_PORT) || 587,
             auth: {
               user: process.env.MAIL_USER,
               pass: process.env.MAIL_PASS,
@@ -12,7 +13,7 @@ const mailSender = async (email, title, body) =>{
           })
 
           let info = await transporter.sendMail({
-            from: "Yash Sarode - StudyNotion" , // sender address
+            from: `"StudyNotion" <${process.env.MAIL_USER}>`, // sender address
             to: `${email}`, 
             subject: `${title}`, 
             html: `${body}`, // plain text body

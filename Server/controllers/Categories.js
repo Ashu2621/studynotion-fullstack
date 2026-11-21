@@ -93,16 +93,19 @@ exports.categoryPageDetails = async (req,res) => {
         course: { $not: { $size: 0 } }
       })
       console.log("categoriesExceptSelected", categoriesExceptSelected)
-      let differentCourses = await Category.findOne(
-        categoriesExceptSelected[getRandomInt(categoriesExceptSelected.length)]
-          ._id
-      )
+      let differentCourses = null
+      if (categoriesExceptSelected.length > 0) {
+        differentCourses = await Category.findOne(
+          categoriesExceptSelected[getRandomInt(categoriesExceptSelected.length)]
+            ._id
+        )
         .populate({
           path: "course",
           match: { status: "Published" },
           populate: "ratingAndReviews",
         })
         .exec()
+      }
         //console.log("Different COURSE", differentCourses)
       // Get top-selling courses across all categories
       const allCategories = await Category.find()
@@ -113,9 +116,9 @@ exports.categoryPageDetails = async (req,res) => {
         })
         .exec()
       const allCourses = allCategories.flatMap((category) => category.courses)
-      const mostSellingCourses = await Course.find({ status: 'Published' })
-      .sort({ "studentsEnrolled.length": -1 }).populate("ratingAndReviews") // Sort by studentsEnrolled array length in descending order
-      .exec();
+      const mostSellingCourses = (
+        await Course.find({ status: 'Published' }).populate("ratingAndReviews").exec()
+      ).sort((a, b) => b.studentsEnrolled.length - a.studentsEnrolled.length);
 
         res.status(200).json({
 			selectedCourses: selectedCourses,

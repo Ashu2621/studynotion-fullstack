@@ -24,7 +24,7 @@ exports.updateProfile = async (req,res) =>{
         const profileId = userDetails.additionalDetails;
 
         const updatedProfile = await Profile.findByIdAndUpdate(profileId, {dateOfBirth, gender, about, contactNumber}, {new:true});
-        const updatedUserDetails = await User.findById(userId).populate("additionalDetails").exec();
+        const updatedUserDetails = await User.findById(userId).select("-password -token -resetPasswordExpires").populate("additionalDetails").exec();
         return res.status(200).json({
             success:true,
             message:'Profile updated successfully',
@@ -82,7 +82,7 @@ exports.getAllUserDetails = async (req, res) => {
         const id = req.user.id;
 
         //validation and get user details
-        const userDetails = await User.findById(id).populate("additionalDetails").exec();
+        const userDetails = await User.findById(id).select("-password -token -resetPasswordExpires").populate("additionalDetails").exec();
         //return response
         return res.status(200).json({
             success:true,
@@ -101,7 +101,13 @@ exports.getAllUserDetails = async (req, res) => {
 
 exports.updateDisplayPicture = async (req, res) => {
     try {
-      const displayPicture = req.files.displayPicture
+      const displayPicture = req.files && req.files.displayPicture
+      if (!displayPicture) {
+        return res.status(400).json({
+          success: false,
+          message: "Please choose an image to upload",
+        })
+      }
       const userId = req.user.id
       const image = await uploadImageToCloudinary(
         displayPicture,
@@ -115,6 +121,8 @@ exports.updateDisplayPicture = async (req, res) => {
         { image: image.secure_url },
         { new: true }
       )
+      updatedProfile.password = undefined
+      updatedProfile.token = undefined
       res.send({
         success: true,
         message: `Image Updated successfully`,
@@ -164,7 +172,7 @@ exports.getEnrolledCourses = async (req, res) => {
 		  courseID: userDetails.courses[i]._id,
 		  userId: userId,
 		})
-		courseProgressCount = courseProgressCount?.completedVideos.length
+		courseProgressCount = courseProgressCount?.completedVideos.length || 0
 		if (SubsectionLength === 0) {
 		  userDetails.courses[i].progressPercentage = 100
 		} else {
@@ -208,7 +216,7 @@ exports.instructorDashboard = async(req, res) => {
 			const courseDataWithStats = {
 				_id: course._id,
 				courseName: course.courseName,
-				courseDescription: course.courseDescription,
+				courseDescription: course.description,
 				totalStudentsEnrolled,
 				totalAmountGenerated,
 			}

@@ -49,16 +49,13 @@ exports.sendOtp = async (req, res) => {
       result = await OTP.findOne({ otp });
     }
 
-    console.log("OTP generated:", otp);
-
     // save otp
     const otpPayload = { email, otp };
-    const otpBody = await OTP.create(otpPayload);
+    await OTP.create(otpPayload);
 
     return res.status(200).json({
       success: true,
       message: "OTP sent successfully",
-      otpBody,
     });
 
   } catch (error) {
@@ -96,6 +93,14 @@ exports.signUp = async (req, res) => {
       });
     }
 
+    // only Student and Instructor accounts can be self-registered
+    if (!["Student", "Instructor"].includes(accountType)) {
+      return res.status(400).json({
+        success: false,
+        message: "Account type must be Student or Instructor",
+      });
+    }
+
     // password match check
     if (password !== confirmPassword) {
       return res.status(403).json({
@@ -124,8 +129,6 @@ exports.signUp = async (req, res) => {
         message: "OTP not found",
       });
     }
-
-    console.log("OTP in signup:", recentOtp[0].otp);
 
     // verify OTP
     if (otp.toString() !== recentOtp[0].otp.toString()) {
@@ -161,6 +164,8 @@ exports.signUp = async (req, res) => {
       additionalDetails: profileDetails._id,
       image: `https://api.dicebear.com/5.x/initials/svg?seed=${firstName} ${lastName}`,
     });
+
+    user.password = undefined;
 
     return res.status(200).json({
       success: true,
@@ -286,27 +291,21 @@ exports.changePassword = async (req, res) => {
       { new: true }
     );
 
-    // send email
+    // send email (the password is already changed, so a mail failure must not fail the request)
     try {
 
-      const emailResponse = await mailSender(
+      await mailSender(
         updatedUserDetails.email,
+        "Password Updated",
         passwordUpdated(
           updatedUserDetails.email,
           `Password updated successfully for ${updatedUserDetails.firstName} ${updatedUserDetails.lastName}`
         )
       );
 
-      console.log("Email sent successfully:", emailResponse.response);
-
     } catch (error) {
 
       console.log("Email error:", error);
-
-      return res.status(500).json({
-        success: false,
-        message: "Error sending email",
-      });
 
     }
 

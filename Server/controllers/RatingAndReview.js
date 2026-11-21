@@ -67,18 +67,24 @@ exports.createRating = async (req, res) => {
 exports.getAverageRating = async(req,res) => {
 
     try {
-        const {courseId} = req.body;
+        const courseId = req.query.courseId || (req.body && req.body.courseId);
+        if (!mongoose.isValidObjectId(courseId)) {
+            return res.status(400).json({
+                success:false,
+                message:"A valid courseId is required",
+            });
+        }
 
         const result = await RatingAndReview.aggregate([
             {
                 $match: {
-                    course:courseId
+                    course: new mongoose.Types.ObjectId(courseId)
                 }
             },
             {
                 $group:{
                     _id:null,
-                    averageRating : {$avg :rating}
+                    averageRating : {$avg: "$rating"}
                 }
             }
         ])

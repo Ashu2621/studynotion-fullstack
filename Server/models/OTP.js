@@ -13,7 +13,7 @@ const OTPSchema = new mongoose.Schema({
     },
     createdAt: {
         type:Date,
-        default:Date.now(),
+        default:Date.now,
         expires: 5*60,
     }
 });
@@ -23,7 +23,10 @@ async function sendVerificationOTP(email, otp) {
         const mailResponse = await mailSender(email,
 			"Verification Email",
 			emailTemplate(otp))
-        console.log("Email sent Successfully: ", mailResponse.response);
+        if (!mailResponse) {
+            throw new Error("Verification email could not be sent");
+        }
+        console.log("Verification email sent to", email);
     } catch (error) {
         console.log("error occured while sending mails: ", error);
         throw error;
