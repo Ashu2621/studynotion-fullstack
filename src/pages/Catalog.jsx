@@ -122,11 +122,14 @@ const Catalog = () => {
         
                 {/* section2 */}
                 <div className=" mx-auto box-content w-full max-w-maxContentTab px-4 py-12 lg:max-w-maxContent">
-                <div className="section_heading">Checkout {catalogPageData?.differentCourses.name} Courses Also</div>
-                    <div className="py-8">
-                        <CourseSlider Courses={catalogPageData?.differentCourses.course}/>
-                        
-                    </div>
+                {catalogPageData?.differentCourses && (
+                    <>
+                        <div className="section_heading">Checkout {catalogPageData.differentCourses.name} Courses Also</div>
+                        <div className="py-8">
+                            <CourseSlider Courses={catalogPageData.differentCourses.course}/>
+                        </div>
+                    </>
+                )}
                 </div>
         
                 {/* section3 */}

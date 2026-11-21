@@ -11,10 +11,7 @@ const RenderCartCourses = () => {
     const {cart} = useSelector((state) => state.cart);
     const dispatch = useDispatch();
 
-    const getRating = (course) => {
-        const count = GetAvgRating(course?.courseDetails.ratingAndReviews);
-        return count;
-      }
+    const getRating = (course) => GetAvgRating(course?.ratingAndReviews || []);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -39,11 +36,10 @@ const RenderCartCourses = () => {
                 {course?.category?.name}
               </p>
               <div className="flex items-center gap-2">
-              {/* {getRating(course)} */}
-                <span className="text-yellow-5">4.5</span>
+                <span className="text-yellow-5">{getRating(course)}</span>
                 <ReactStars
                   count={5}
-                  value={course?.ratingAndReviews?.length}
+                  value={getRating(course)}
                   size={20}
                   edit={false}
                   activeColor="#ffd700"

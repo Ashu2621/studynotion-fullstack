@@ -109,12 +109,12 @@ export function login(email, password, navigate){
 
       toast.success("Login Successfully")
       dispatch(setToken(response.data.token));
-      const userImage = response.data?.existingUser?.image
-        ? response.data.existingUser.image
-        : `https://api.dicebear.com/5.x/initials/svg?seed=${response.data.existingUser.firstName} ${response.data.existingUser.lastName}`
-      dispatch(setUser({ ...response.data.existingUser, image: userImage }))
+      const userImage = response.data?.user?.image
+        ? response.data.user.image
+        : `https://api.dicebear.com/5.x/initials/svg?seed=${response.data.user.firstName} ${response.data.user.lastName}`
+      dispatch(setUser({ ...response.data.user, image: userImage }))
       localStorage.setItem("token", JSON.stringify(response.data.token))
-      localStorage.setItem("user", JSON.stringify(response.data.existingUser))
+      localStorage.setItem("user", JSON.stringify({ ...response.data.user, image: userImage }))
       navigate("/dashboard/my-profile")
      } catch (error) {
       console.log("LOGIN API ERROR............", error)
