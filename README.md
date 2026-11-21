@@ -77,7 +77,7 @@ npm install
 cd Server && npm install && cd ..
 
 # 2. Configure (see the tables below)
-#    .env          -> front end
+#    .env          -> front end (copy .env.example)
 #    Server/.env   -> API
 
 # 3. Start the API (terminal 1)
