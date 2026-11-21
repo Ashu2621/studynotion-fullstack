@@ -69,31 +69,39 @@ Routes are protected by `auth` plus a role check (`isStudent`, `isInstructor`, `
 
 ## Run locally
 
-Requirements: Node.js, a MongoDB database, and accounts for Cloudinary, Razorpay (test mode is fine) and an SMTP mailbox.
+Requirements: Node.js, a MongoDB database (a free MongoDB Atlas cluster works), and accounts for Cloudinary, Razorpay (test mode is fine) and an SMTP mailbox.
 
 ```bash
 # 1. Install
 npm install
 cd Server && npm install && cd ..
 
-# 2. Configure (see the tables below)
-#    .env          -> front end (copy .env.example)
-#    Server/.env   -> API
+# 2. Configure
+cp .env.example .env                  # front end
+cp Server/.env.example Server/.env    # API  (fill in the values, see the tables below)
 
-# 3. Start the API (terminal 1)
-cd Server && npm run dev
+# 3. Fill the empty database: categories, an admin account, optional demo course
+cd Server
+npm run seed -- --demo
+#   set ADMIN_EMAIL and ADMIN_PASSWORD first if you want an admin account
 
-# 4. Start the front end (terminal 2, from the repo root)
+# 4. Start the API (terminal 1)
+npm run dev
+
+# 5. Start the front end (terminal 2, from the repo root)
 npm start
 ```
 
 The front end runs on http://localhost:3000 and the API on http://localhost:4000.
+
+Public sign-up only creates **Student** and **Instructor** accounts. The **Admin** account (who can create categories) comes from `npm run seed`.
 
 ### Front end `.env`
 
 | Variable | Purpose |
 |---|---|
 | `REACT_APP_BASE_URL` | API base URL, e.g. `http://localhost:4000/api/v1` |
+| `REACT_APP_RAZORPAY_KEY` | Razorpay key id (public key) used by the checkout script |
 
 ### API `Server/.env`
 
@@ -102,17 +110,31 @@ The front end runs on http://localhost:3000 and the API on http://localhost:4000
 | `PORT` | API port (default 4000) |
 | `MONGODB_URL` | MongoDB connection string |
 | `JWT_SECRET` | Secret used to sign tokens |
-| `MAIL_HOST`, `MAIL_USER`, `MAIL_PASS` | SMTP settings for OTP and notification emails |
+| `FRONTEND_URL` | Front-end address used in the password-reset email link (default `http://localhost:3000`) |
+| `CORS_ORIGINS` | Comma-separated browser origins allowed to call the API |
+| `MAIL_HOST`, `MAIL_USER`, `MAIL_PASS` | SMTP settings for OTP and notification emails (`MAIL_PORT` optional, default 587) |
 | `CLOUD_NAME`, `API_KEY`, `API_SECRET`, `FOLDER_NAME` | Cloudinary credentials and upload folder |
 | `RAZORPAY_KEY`, `RAZORPAY_SECRET` | Razorpay credentials |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Only used by `npm run seed` to create the admin |
 
 Never commit real keys. Use Razorpay test keys while developing.
 
+## Tests
+
+```bash
+cd Server
+npm test
+```
+
+67 end-to-end checks run against the real Express app with an in-memory MongoDB and a local SMTP sink (no accounts needed; Cloudinary uploads and Razorpay order creation are stubbed). They cover sign-up with OTP, login, password change and reset, profile, categories, the course builder (course, sections, lectures), ownership rules between instructors, payment verification and enrolment, progress, reviews and deletes.
+
 ## Deployment
 
-- **API:** `Server/` deploys as a Node web service (it also ships a `vercel.json`). Set the variables above in the host's dashboard.
-- **Front end:** build with `npm run build` and deploy the `build/` folder (for example on Vercel). Set `REACT_APP_BASE_URL` to the deployed API.
-- CORS in `Server/index.js` allows one front-end origin. Change it when you deploy under a different domain.
+- **API:** `Server/` deploys as a Node web service (for example on Render, build `npm install`, start `npm start`). Set every variable from the table above in the host's dashboard, including `FRONTEND_URL` and `CORS_ORIGINS` with your deployed front-end address.
+- **Database:** create a MongoDB Atlas cluster, add a database user, allow the host in *Network Access*, and put the connection string in `MONGODB_URL`. Then run `npm run seed` once from your machine with the same `MONGODB_URL` to create the categories and admin.
+- **Front end:** build with `npm run build` and deploy the `build/` folder (for example on Vercel). Set `REACT_APP_BASE_URL` and `REACT_APP_RAZORPAY_KEY` in the host's environment variables.
+
+If the API log shows `querySrv ENOTFOUND ... mongodb.net`, the cluster in `MONGODB_URL` no longer exists. The server stops when it cannot reach the database, so create a new cluster and update the variable.
 
 ## Notes
 
